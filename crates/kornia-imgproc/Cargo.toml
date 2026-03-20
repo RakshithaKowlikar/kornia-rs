@@ -84,6 +84,8 @@ opencv = { version = "0.92", optional = true }
 rayon = { workspace = true }
 thiserror = { workspace = true }
 wide = "1.1.1"
+cubecl = { version = "0.4", features = ["wgpu"], optional = true }
+bytemuck = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
@@ -95,3 +97,4 @@ rand = { workspace = true }
 
 [features]
 opencv_bench = ["dep:opencv"]
+gpu = ["dep:cubecl", "dep:bytemuck"]

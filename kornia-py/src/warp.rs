@@ -88,7 +88,7 @@ pub fn warp_perspective(
     let mut image_warped = Image::from_size_val(new_size, 0f32, CpuAllocator)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(format!("{}", e)))?;
 
-    warp::warp_perspective(&image, &mut image_warped, &m, interpolation)
+    warp::warp_perspective(&image, &mut image_warped, &m, interpolation, &warp::WarpBackend::Cpu)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(format!("{}", e)))?;
 
     let image_warped = image_warped

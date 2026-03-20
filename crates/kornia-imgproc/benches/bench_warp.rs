@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use kornia_image::Image;
 use kornia_imgproc::{
     interpolation::InterpolationMode,
-    warp::{get_rotation_matrix2d, warp_affine, warp_perspective},
+    warp::{get_rotation_matrix2d, warp_affine, warp_perspective, WarpBackend},
 };
 use kornia_tensor::CpuAllocator;
 
@@ -78,13 +78,59 @@ fn bench_warp_perspective(c: &mut Criterion) {
                         std::hint::black_box(&mut dst),
                         std::hint::black_box(&m),
                         std::hint::black_box(InterpolationMode::Bilinear),
+                        &WarpBackend::Cpu,
                     )
-                })
+})
+
             },
         );
     }
     group.finish();
 }
+    
+#[cfg(feature = "gpu")]
+fn bench_warp_perspective_gpu(c: &mut Criterion) {
+    use kornia_imgproc::warp::GpuWarpContext;
+    use std::sync::Arc;
 
+    let mut group = c.benchmark_group("WarpPerspectiveGPU");
+
+    for (width, height) in [(256u32, 224u32), (512, 448), (1024, 896)].iter() {
+        group.throughput(criterion::Throughput::Elements((*width * *height) as u64));
+        let parameter_string = format!("{width}x{height}");
+
+        let image_size = [*width as usize, *height as usize].into();
+        let image = Image::<f32, 3, CpuAllocator>::from_size_val(image_size, 0.0, CpuAllocator).unwrap();
+        let inv_m = [1.0f32, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+
+        let ctx = Arc::new(GpuWarpContext::new(*width, *height, *width, *height, 3));
+
+        // upload inputs once, reuse across iterations
+        let src_handle = ctx.upload_src(image.as_slice());
+        let inv_m_handle = ctx.upload_inv_m(&inv_m);
+
+        group.bench_function(
+            BenchmarkId::new("cubecl_wgpu", &parameter_string),
+            |b| {
+                b.iter(|| {
+                    ctx.dispatch(
+                        std::hint::black_box(&src_handle),
+                        std::hint::black_box(&inv_m_handle),
+                    )
+                })
+            },
+        );
+
+        // flush GPU before next iteration
+        let _ = ctx.read_back();
+    }
+    group.finish();
+}
+
+#[cfg(not(feature = "gpu"))]
 criterion_group!(benches, bench_warp_affine, bench_warp_perspective);
+
+#[cfg(feature = "gpu")]
+criterion_group!(benches, bench_warp_affine, bench_warp_perspective, bench_warp_perspective_gpu);
+
 criterion_main!(benches);
