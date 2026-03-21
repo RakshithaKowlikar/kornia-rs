@@ -2,8 +2,6 @@
 
 GSOC PROPOSAL: [gpu\_BEV\_proposal](https://docs.google.com/document/d/1FyUEpVq5QxWn2hFEUPUe9RgBU4c9i0Z7GXF-9KUIUMA/edit?usp=sharing)
 
-## **What was added**
-
 ### **crates/kornia-imgproc/src/warp/perspective.rs**
 
 * Added WarpBackend enum — selects CPU or GPU path for warp\_perspective  
